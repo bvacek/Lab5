@@ -53,6 +53,10 @@ public class MorseDecoder {
 
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
+            int numFrames = inputFile.readFrames(sampleBuffer, BIN_SIZE);
+            for (int i = 0; i < numFrames; i++) {
+                returnBuffer[i] += Math.abs(sampleBuffer[i]);
+            }
             // Get the right number of samples from the inputFile
             // Sum all the samples together and store them in the returnBuffer
         }
@@ -60,7 +64,7 @@ public class MorseDecoder {
     }
 
     /** Power threshold for power or no power. You may need to modify this value. */
-    private static final double POWER_THRESHOLD = 10;
+    private static final double POWER_THRESHOLD = 80;
 
     /** Bin threshold for dots or dashes. Related to BIN_SIZE. You may need to modify this value. */
     private static final int DASH_BIN_COUNT = 8;
@@ -81,13 +85,38 @@ public class MorseDecoder {
          * There are four conditions to handle. Symbols should only be output when you see
          * transitions. You will also have to store how much power or silence you have seen.
          */
-
+        String returnString = "";
+        for (int i = 1; i < powerMeasurements.length; i += 2) {
+            boolean isPower = false;
+            boolean wasPower = false;
+            boolean isSilence = false;
+            boolean wasSilence = false;
+            if (powerMeasurements[i - 1] >= POWER_THRESHOLD) {
+                wasPower = true;
+            } else {
+                wasSilence = true;
+            }
+            if (powerMeasurements[i] >= POWER_THRESHOLD) {
+                isPower = true;
+            } else {
+                isSilence = true;
+            }
+            if (isPower && wasPower) {
+                returnString += "-";
+            } else if (isPower && wasSilence) {
+                returnString += ".";
+            } else if (isSilence && wasSilence) {
+                returnString += "";
+            } else if (isSilence && wasPower) {
+                returnString += ".";
+            }
+        }
         // if ispower and waspower
         // else if ispower and not waspower
         // else if issilence and wassilence
         // else if issilence and not wassilence
 
-        return "";
+        return returnString;
     }
 
     /**
